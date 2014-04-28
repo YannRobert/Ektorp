@@ -1,15 +1,11 @@
 package org.ektorp.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
 import org.ektorp.CouchDbInstance;
 import org.ektorp.DocumentOperationResult;
 import org.ektorp.PurgeResult;
-import org.ektorp.UpdateConflictException;
-import org.ektorp.http.HttpResponse;
-import org.ektorp.http.HttpStatus;
-import org.ektorp.http.JacksonableEntity;
-import org.ektorp.http.StdResponseHandler;
+import org.ektorp.http.*;
 import org.ektorp.util.Assert;
 import org.ektorp.util.Documents;
 
@@ -17,6 +13,28 @@ import java.util.List;
 import java.util.Map;
 
 public class StreamedCouchDbConnector extends StdCouchDbConnector {
+
+    private final ThreadLocal<ClassInstanceResponseHandler> classInstanceResponseHandlerThreadLocal = new ThreadLocal<ClassInstanceResponseHandler>() {
+        
+        @Override
+        protected ClassInstanceResponseHandler initialValue() {
+            ObjectMapper objectMapper = getObjectMapperFactory().createObjectMapper(StreamedCouchDbConnector.this);
+            ClassInstanceResponseHandler result = new ClassInstanceResponseHandler(objectMapper);
+            return result;
+        }
+
+    };
+
+    private final ThreadLocal<EntityUpdateResponseHandler> entityUpdateResponseHandlerThreadLocal = new ThreadLocal<EntityUpdateResponseHandler>() {
+
+        @Override
+        protected EntityUpdateResponseHandler initialValue() {
+            ObjectMapper objectMapper = getObjectMapperFactory().createObjectMapper(StreamedCouchDbConnector.this);
+            EntityUpdateResponseHandler result = new EntityUpdateResponseHandler(objectMapper);
+            return result;
+        }
+
+    };
 
     public StreamedCouchDbConnector(String databaseName, CouchDbInstance dbInstance) {
         super(databaseName, dbInstance);
@@ -67,13 +85,8 @@ public class StreamedCouchDbConnector extends StdCouchDbConnector {
     public PurgeResult purge(Map<String, List<String>> revisionsToPurge) {
         HttpEntity entity = createHttpEntity(revisionsToPurge);
 
-        return restTemplate.post(dbURI.append("_purge").toString(), entity,
-                new StdResponseHandler<PurgeResult>() {
-                    @Override
-                    public PurgeResult success(HttpResponse hr) throws Exception {
-                        return objectMapper.readValue(hr.getContent(), PurgeResult.class);
-                    }
-                });
+        ResponseCallback<PurgeResult> responseCallback = getClassInstanceResponseHandler(PurgeResult.class);
+        return restTemplate.post(dbURI.append("_purge").toString(), entity, responseCallback);
     }
 
     @Override
@@ -84,26 +97,24 @@ public class StreamedCouchDbConnector extends StdCouchDbConnector {
 
         HttpEntity entity = createHttpEntity(o);
 
-        restTemplate.put(dbURI.append(id).toString(), entity,
-                new StdResponseHandler<Void>() {
+        EntityUpdateResponseHandler responseHandler = getEntityUpdateResponseHandler(o, id);
 
-                    @Override
-                    public Void success(HttpResponse hr) throws Exception {
-                        JsonNode n = objectMapper.readValue(hr.getContent(),
-                                JsonNode.class);
-                        Documents.setRevision(o, n.get("rev").textValue());
-                        return null;
-                    }
-
-                    @Override
-                    public Void error(HttpResponse hr) {
-                        if (hr.getCode() == HttpStatus.CONFLICT) {
-                            throw new UpdateConflictException(id, Documents
-                                    .getRevision(o));
-                        }
-                        return super.error(hr);
-                    }
-                });
+        restTemplate.put(dbURI.append(id).toString(), entity, responseHandler);
     }
+
+    @Override
+    protected EntityUpdateResponseHandler getEntityUpdateResponseHandler(Object o, String id) {
+        EntityUpdateResponseHandler responseHandler = entityUpdateResponseHandlerThreadLocal.get();
+        responseHandler.setEntityInfo(o, id);
+        return responseHandler;
+    }
+
+    @Override
+    protected <T> ResponseCallback<T> getClassInstanceResponseHandler(final Class<T> c) {
+        ClassInstanceResponseHandler responseHandler = classInstanceResponseHandlerThreadLocal.get();
+        responseHandler.setClazz(c);
+        return responseHandler;
+    }
+
 }
 

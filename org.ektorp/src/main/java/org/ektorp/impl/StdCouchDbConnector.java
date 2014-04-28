@@ -58,6 +58,8 @@ public class StdCouchDbConnector implements CouchDbConnector {
 
     private BulkExecutor<InputStream> inputStreamBulkExecutor;
 
+    private final ObjectMapperFactory objectMapperFactory;
+
     private final static Options EMPTY_OPTIONS = new Options();
 
     public StdCouchDbConnector(String databaseName, CouchDbInstance dbInstance) {
@@ -69,6 +71,8 @@ public class StdCouchDbConnector implements CouchDbConnector {
         Assert.hasText(databaseName, "DatabaseName may not be null or empty");
         Assert.notNull(dbi, "CouchDbInstance may not be null");
         Assert.notNull(om, "ObjectMapperFactory may not be null");
+
+        this.objectMapperFactory = om;
 
         DbPath dbp = DbPath.fromString(databaseName);
         dbName = dbp.getDbName();
@@ -115,6 +119,10 @@ public class StdCouchDbConnector implements CouchDbConnector {
      */
     public void setQueryExecutor(QueryExecutor queryExecutor) {
         this.queryExecutor = queryExecutor;
+    }
+
+    public ObjectMapperFactory getObjectMapperFactory() {
+        return objectMapperFactory;
     }
 
     @Override
@@ -223,13 +231,8 @@ public class StdCouchDbConnector implements CouchDbConnector {
 
     @Override
     public PurgeResult purge(Map<String, List<String>> revisionsToPurge) {
-        return restTemplate.post(dbURI.append("_purge").toString(), serializeToJson(revisionsToPurge),
-                new StdResponseHandler<PurgeResult>() {
-                    @Override
-                    public PurgeResult success(HttpResponse hr) throws Exception {
-                        return objectMapper.readValue(hr.getContent(), PurgeResult.class);
-                    }
-                });
+        ResponseCallback<PurgeResult> responseCallback = getClassInstanceResponseHandler(PurgeResult.class);
+        return restTemplate.post(dbURI.append("_purge").toString(), serializeToJson(revisionsToPurge), responseCallback);
     }
 
     @Override
@@ -243,13 +246,8 @@ public class StdCouchDbConnector implements CouchDbConnector {
         assertDocIdHasValue(id);
         URI uri = dbURI.append(id);
         applyOptions(options, uri);
-        return restTemplate.get(uri.toString(),
-                new StdResponseHandler<T>() {
-                    @Override
-                    public T success(HttpResponse hr) throws Exception {
-                        return objectMapper.readValue(hr.getContent(), c);
-                    }
-                });
+        ResponseCallback<T> responseCallback = getClassInstanceResponseHandler(c);
+        return restTemplate.get(uri.toString(), responseCallback);
     }
 
     @Override
@@ -366,26 +364,8 @@ public class StdCouchDbConnector implements CouchDbConnector {
         Assert.notNull(o, "Document cannot be null");
         final String id = Documents.getId(o);
         assertDocIdHasValue(id);
-        restTemplate.put(dbURI.append(id).toString(), serializeToJson(o),
-                new StdResponseHandler<Void>() {
-
-                    @Override
-                    public Void success(HttpResponse hr) throws Exception {
-                        JsonNode n = objectMapper.readValue(hr.getContent(),
-                                JsonNode.class);
-                        Documents.setRevision(o, n.get("rev").textValue());
-                        return null;
-                    }
-
-                    @Override
-                    public Void error(HttpResponse hr) {
-                        if (hr.getCode() == HttpStatus.CONFLICT) {
-                            throw new UpdateConflictException(id, Documents
-                                    .getRevision(o));
-                        }
-                        return super.error(hr);
-                    }
-                });
+        EntityUpdateResponseHandler entityUpdateResponseHandler = getEntityUpdateResponseHandler(o, id);
+        restTemplate.put(dbURI.append(id).toString(), serializeToJson(o), entityUpdateResponseHandler);
     }
 
     @Override
@@ -509,16 +489,8 @@ public class StdCouchDbConnector implements CouchDbConnector {
 
     @Override
     public DbInfo getDbInfo() {
-        return restTemplate.get(dbURI.toString(),
-                new StdResponseHandler<DbInfo>() {
-
-                    @Override
-                    public DbInfo success(HttpResponse hr) throws Exception {
-                        return objectMapper.readValue(hr.getContent(),
-                                DbInfo.class);
-                    }
-                }
-        );
+        ResponseCallback<DbInfo> responseCallback = getClassInstanceResponseHandler(DbInfo.class);
+        return restTemplate.get(dbURI.toString(), responseCallback);
     }
 
     @Override
@@ -527,14 +499,8 @@ public class StdCouchDbConnector implements CouchDbConnector {
         String uri = dbURI.append("_design").append(designDocId)
                 .append("_info").toString();
 
-        return restTemplate.get(uri, new StdResponseHandler<DesignDocInfo>() {
-
-            @Override
-            public DesignDocInfo success(HttpResponse hr) throws Exception {
-                return objectMapper.readValue(hr.getContent(),
-                        DesignDocInfo.class);
-            }
-        });
+        ResponseCallback<DesignDocInfo> responseCallback = getClassInstanceResponseHandler(DesignDocInfo.class);
+        return restTemplate.get(uri, responseCallback);
     }
 
     @Override
@@ -837,6 +803,14 @@ public class StdCouchDbConnector implements CouchDbConnector {
 
 		restTemplate.put(uri.toString(), document, "application/json", length);
 	}
+
+    protected EntityUpdateResponseHandler getEntityUpdateResponseHandler(Object o, String id) {
+        return new EntityUpdateResponseHandler(objectMapper, o, id);
+    }
+
+    protected <T> ResponseCallback<T> getClassInstanceResponseHandler(final Class<T> c) {
+        return new ClassInstanceResponseHandler(objectMapper, c);
+    }
 
 }
 
