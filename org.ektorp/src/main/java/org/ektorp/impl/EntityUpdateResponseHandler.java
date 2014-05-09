@@ -9,6 +9,7 @@ import org.ektorp.http.HttpStatus;
 import org.ektorp.http.StdResponseHandler;
 import org.ektorp.util.Documents;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 public class EntityUpdateResponseHandler extends StdResponseHandler<Void> {
@@ -50,7 +51,19 @@ public class EntityUpdateResponseHandler extends StdResponseHandler<Void> {
 	@Override
 	public Void error(HttpResponse hr) {
 		if (hr.getCode() == HttpStatus.CONFLICT) {
-			throw new UpdateConflictException(entityId, Documents.getRevision(entityObject));
+			// we should consume the content of the response, even if we do not need it
+			// the response should generally be this 58 chars long String, equals to : {"error":"conflict","reason":"Document update conflict."}\n
+			String details;
+			InputStream content = null;
+			try {
+				content = hr.getContent();
+				details = IOUtils.toString(content);
+			} catch (IOException e) {
+				details = null;
+			} finally {
+				IOUtils.closeQuietly(content);
+			}
+			throw new UpdateConflictException(details, entityId, Documents.getRevision(entityObject));
 		}
 		return super.error(hr);
 	}
