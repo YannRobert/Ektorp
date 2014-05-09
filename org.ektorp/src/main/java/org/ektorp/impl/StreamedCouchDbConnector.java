@@ -1,11 +1,11 @@
 package org.ektorp.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
 import org.ektorp.CouchDbInstance;
 import org.ektorp.DocumentOperationResult;
 import org.ektorp.PurgeResult;
-import org.ektorp.http.*;
+import org.ektorp.http.JacksonableEntity;
+import org.ektorp.http.ResponseCallback;
 import org.ektorp.util.Assert;
 import org.ektorp.util.Documents;
 
@@ -13,28 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 public class StreamedCouchDbConnector extends StdCouchDbConnector {
-
-    private final ThreadLocal<ClassInstanceResponseHandler> classInstanceResponseHandlerThreadLocal = new ThreadLocal<ClassInstanceResponseHandler>() {
-        
-        @Override
-        protected ClassInstanceResponseHandler initialValue() {
-            ObjectMapper objectMapper = getObjectMapperFactory().createObjectMapper(StreamedCouchDbConnector.this);
-            ClassInstanceResponseHandler result = new ClassInstanceResponseHandler(objectMapper);
-            return result;
-        }
-
-    };
-
-    private final ThreadLocal<EntityUpdateResponseHandler> entityUpdateResponseHandlerThreadLocal = new ThreadLocal<EntityUpdateResponseHandler>() {
-
-        @Override
-        protected EntityUpdateResponseHandler initialValue() {
-            ObjectMapper objectMapper = getObjectMapperFactory().createObjectMapper(StreamedCouchDbConnector.this);
-            EntityUpdateResponseHandler result = new EntityUpdateResponseHandler(objectMapper);
-            return result;
-        }
-
-    };
 
     public StreamedCouchDbConnector(String databaseName, CouchDbInstance dbInstance) {
         super(databaseName, dbInstance);
@@ -47,6 +25,7 @@ public class StreamedCouchDbConnector extends StdCouchDbConnector {
     {
         setCollectionBulkExecutor(new EntityCollectionBulkExecutor(dbURI, restTemplate, objectMapper));
         setInputStreamBulkExecutor(new InputStreamBulkEntityBulkExecutor(dbURI, restTemplate, objectMapper));
+        setCouchDbConnectorResponseHandlerFactory(new NonBlockingCouchDbConnectorResponseHandlerFactory(this));
     }
 
     protected HttpEntity createHttpEntity(Object o) {
@@ -85,7 +64,8 @@ public class StreamedCouchDbConnector extends StdCouchDbConnector {
     public PurgeResult purge(Map<String, List<String>> revisionsToPurge) {
         HttpEntity entity = createHttpEntity(revisionsToPurge);
 
-        ResponseCallback<PurgeResult> responseCallback = getClassInstanceResponseHandler(PurgeResult.class);
+        ResponseCallback<PurgeResult> responseCallback = couchDbConnectorResponseHandlerFactory.getClassInstanceResponseHandler(PurgeResult.class);
+
         return restTemplate.post(dbURI.append("_purge").toString(), entity, responseCallback);
     }
 
@@ -97,23 +77,8 @@ public class StreamedCouchDbConnector extends StdCouchDbConnector {
 
         HttpEntity entity = createHttpEntity(o);
 
-        EntityUpdateResponseHandler responseHandler = getEntityUpdateResponseHandler(o, id);
-
+        EntityUpdateResponseHandler responseHandler = couchDbConnectorResponseHandlerFactory.getEntityUpdateResponseHandler(o, id);
         restTemplate.put(dbURI.append(id).toString(), entity, responseHandler);
-    }
-
-    @Override
-    protected EntityUpdateResponseHandler getEntityUpdateResponseHandler(Object o, String id) {
-        EntityUpdateResponseHandler responseHandler = entityUpdateResponseHandlerThreadLocal.get();
-        responseHandler.setEntityInfo(o, id);
-        return responseHandler;
-    }
-
-    @Override
-    protected <T> ResponseCallback<T> getClassInstanceResponseHandler(final Class<T> c) {
-        ClassInstanceResponseHandler responseHandler = classInstanceResponseHandlerThreadLocal.get();
-        responseHandler.setClazz(c);
-        return responseHandler;
     }
 
 }
