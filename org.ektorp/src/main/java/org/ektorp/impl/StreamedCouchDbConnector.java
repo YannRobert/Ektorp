@@ -64,7 +64,7 @@ public class StreamedCouchDbConnector extends StdCouchDbConnector {
     public PurgeResult purge(Map<String, List<String>> revisionsToPurge) {
         HttpEntity entity = createHttpEntity(revisionsToPurge);
 
-        ResponseCallback<PurgeResult> responseCallback = couchDbConnectorResponseHandlerFactory.getClassInstanceResponseHandler(PurgeResult.class);
+        ResponseCallback<PurgeResult> responseCallback = getCouchDbConnectorResponseHandlerFactory().getClassInstanceResponseHandler(PurgeResult.class);
 
         return restTemplate.post(dbURI.append("_purge").toString(), entity, responseCallback);
     }
@@ -77,7 +77,7 @@ public class StreamedCouchDbConnector extends StdCouchDbConnector {
 
         HttpEntity entity = createHttpEntity(o);
 
-        EntityUpdateResponseHandler responseHandler = couchDbConnectorResponseHandlerFactory.getEntityUpdateResponseHandler(o, id);
+        EntityUpdateResponseHandler responseHandler = getCouchDbConnectorResponseHandlerFactory().getEntityUpdateResponseHandler(o, id);
         restTemplate.put(dbURI.append(id).toString(), entity, responseHandler);
     }
 
