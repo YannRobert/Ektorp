@@ -5,11 +5,10 @@ import org.apache.commons.io.output.NullOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class ConnectionReleasingInputStream extends FilterInputStream {
+public class ConnectionReleasingInputStream extends InputStream {
 
 	private final static Logger LOG = LoggerFactory.getLogger(ConnectionReleasingInputStream.class);
 
@@ -21,9 +20,12 @@ public class ConnectionReleasingInputStream extends FilterInputStream {
 
 	private final HttpResponse httpResponse;
 
+	private final InputStream in;
+
 	// visible for tests
 	public ConnectionReleasingInputStream(InputStream src, HttpResponse httpResponse) {
-		super(src);
+		super();
+		this.in = src;
 		this.httpResponse = httpResponse;
 		if (src == null) {
 			eof = true;
@@ -35,7 +37,7 @@ public class ConnectionReleasingInputStream extends FilterInputStream {
 		if (in == null) {
 			return -1;
 		}
-		int read = super.read();
+		int read = in.read();
 		eof = (read == -1);
 		return read;
 	}
@@ -48,7 +50,7 @@ public class ConnectionReleasingInputStream extends FilterInputStream {
 		if (in == null) {
 			return -1;
 		}
-		int read = super.read(b, off, len);
+		int read = in.read(b, off, len);
 		eof = ((read == -1) || (read < len));
 		return read;
 	}
