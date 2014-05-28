@@ -37,7 +37,9 @@ public class CredentialsProviderConfigurer {
 			if (result == null) {
 				result = credentialsMap.get(new AuthScope(authScope.getHost(), authScope.getPort(), AuthScope.ANY_REALM));
 			}
-			LOG.info("getCredentials({}) : result = {}", new Object[]{authScope, result});
+			if (LOG.isTraceEnabled()) {
+				LOG.trace("getCredentials({}) : result = {}", new Object[]{authScope, result});
+			}
 			return result;
 		}
 
