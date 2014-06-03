@@ -30,6 +30,8 @@ public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHand
 
 	private int maxRetryCount;
 
+	private boolean includeExceptionInLogs = false;
+
 	public ConfigurableHttpRequestRetryHandler() {
 		this(DEFAULT_MAX_RETRY_COUNT);
 	}
@@ -50,7 +52,11 @@ public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHand
 
 		final String method = request.getRequestLine().getMethod();
 		if (LOG.isTraceEnabled()) {
-			LOG.trace("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage()});
+			if (includeExceptionInLogs) {
+				LOG.trace("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage()}, exception);
+			} else {
+				LOG.trace("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage()});
+			}
 		}
 
 		if (executionCount >= maxRetryCount) {
