@@ -15,7 +15,7 @@ import java.io.IOException;
 
 public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHandler {
 
-	private final static Logger LOG = LoggerFactory.getLogger(ConfigurableHttpRequestRetryHandler.class);
+	protected final static Logger LOG = LoggerFactory.getLogger(ConfigurableHttpRequestRetryHandler.class);
 
 	// usage example : 
 	//{
@@ -51,12 +51,10 @@ public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHand
 		final HttpRequest request = (HttpRequest) context.getAttribute(ExecutionContext.HTTP_REQUEST);
 
 		final String method = request.getRequestLine().getMethod();
-		if (LOG.isTraceEnabled()) {
-			if (includeExceptionInLogs) {
-				LOG.trace("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage()}, exception);
-			} else {
-				LOG.trace("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage()});
-			}
+		if (includeExceptionInLogs) {
+			LOG.info("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage(), exception});
+		} else {
+			LOG.info("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage()});
 		}
 
 		if (executionCount >= maxRetryCount) {
