@@ -46,8 +46,11 @@ public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHand
 	}
 
 	private boolean computeRetryRequest(IOException exception, int executionCount, HttpContext context) {
+		final HttpRequest request = (HttpRequest) context.getAttribute(ExecutionContext.HTTP_REQUEST);
+
+		final String method = request.getRequestLine().getMethod();
 		if (LOG.isTraceEnabled()) {
-			LOG.trace("Decide about retry #" + executionCount + " for exception " + exception.getMessage());
+			LOG.trace("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage()});
 		}
 
 		if (executionCount >= maxRetryCount) {
@@ -64,7 +67,6 @@ public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHand
 			return true;
 		}
 
-		HttpRequest request = (HttpRequest) context.getAttribute(ExecutionContext.HTTP_REQUEST);
 		boolean idempotent = !(request instanceof HttpEntityEnclosingRequest);
 		// Retry if the request is considered idempotent
 		return idempotent;
