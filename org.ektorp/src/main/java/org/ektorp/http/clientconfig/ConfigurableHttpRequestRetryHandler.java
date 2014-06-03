@@ -78,4 +78,7 @@ public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHand
 		return idempotent;
 	}
 
+	public void setIncludeExceptionInLogs(boolean includeExceptionInLogs) {
+		this.includeExceptionInLogs = includeExceptionInLogs;
+	}
 }
