@@ -37,10 +37,21 @@ public class CloseableHttpClientRequestExecutor extends HttpClientRequestExecuto
 	public void init() {
 		Assert.notNull(serverHostName);
 		Assert.notNull(serverHostPort);
-		client = clientBuilder.build();
-		backend = backendBuilder.build();
+		if (clientBuilder != null) {
+			client = clientBuilder.build();
+		}
+		if (backendBuilder != null) {
+			backend = backendBuilder.build();
+		}
 	}
 
+	@Override
+	public HttpResponse executeRequest(HttpUriRequest request, boolean useBackend) throws IOException {
+		return super.executeRequest(request, false);
+	}
+	
+	/*
+	@Override
 	public HttpResponse executeRequest(HttpUriRequest request, boolean useBackend) throws IOException {
 		HttpClient client = null;
 		try {
@@ -52,6 +63,7 @@ public class CloseableHttpClientRequestExecutor extends HttpClientRequestExecuto
 			releaseHttpClient(client);
 		}
 	}
+	*/
 
 	@Override
 	public HttpClient locateHttpClient(boolean useBackend) {

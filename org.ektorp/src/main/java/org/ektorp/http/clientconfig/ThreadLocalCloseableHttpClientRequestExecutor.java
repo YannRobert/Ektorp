@@ -1,12 +1,9 @@
 package org.ektorp.http.clientconfig;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.ektorp.http.HttpResponse;
 import org.ektorp.util.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,27 +19,13 @@ public class ThreadLocalCloseableHttpClientRequestExecutor extends HttpClientReq
 
 	private Integer serverHostPort;
 
-	private HttpClientBuilder clientBuilder;
+	protected HttpClientBuilder clientBuilder;
 
-	private HttpClientBuilder backendBuilder;
+	protected HttpClientBuilder backendBuilder;
 
-	private final ThreadLocal<CloseableHttpClient> clientThreadLocal = new ThreadLocal<CloseableHttpClient>() {
+	protected final ThreadLocal<CloseableHttpClient> clientThreadLocal = new ThreadLocal<CloseableHttpClient>();
 
-		@Override
-		protected CloseableHttpClient initialValue() {
-			return clientBuilder.build();
-		}
-
-	};
-
-	private final ThreadLocal<CloseableHttpClient> backendThreadLocal = new ThreadLocal<CloseableHttpClient>() {
-
-		@Override
-		protected CloseableHttpClient initialValue() {
-			return backendBuilder.build();
-		}
-
-	};
+	protected final ThreadLocal<CloseableHttpClient> backendThreadLocal = new ThreadLocal<CloseableHttpClient>();
 
 	public ThreadLocalCloseableHttpClientRequestExecutor() {
 		super();
@@ -54,6 +37,8 @@ public class ThreadLocalCloseableHttpClientRequestExecutor extends HttpClientReq
 		Assert.notNull(serverHostPort);
 	}
 
+	/*
+	@Override
 	public HttpResponse executeRequest(HttpUriRequest request, boolean useBackend) throws IOException {
 		HttpClient client = null;
 		try {
@@ -65,13 +50,14 @@ public class ThreadLocalCloseableHttpClientRequestExecutor extends HttpClientReq
 			releaseHttpClient(client);
 		}
 	}
+	*/
 
 	@Override
 	public HttpClient locateHttpClient(boolean useBackend) {
 		if (useBackend) {
-			return backendThreadLocal.get();
+			return getOrCreateHttpClient(backendBuilder, backendThreadLocal);
 		} else {
-			return clientThreadLocal.get();
+			return getOrCreateHttpClient(clientBuilder, clientThreadLocal);
 		}
 	}
 
@@ -82,9 +68,10 @@ public class ThreadLocalCloseableHttpClientRequestExecutor extends HttpClientReq
 
 	@Override
 	public void shutdown() {
-		// FIXME : initial value would create a new instance if not exists already, which would be done for nothing : TODO : remove initialValue() in ThreadLocal 
-		IOUtils.closeQuietly(clientThreadLocal.get());
-		IOUtils.closeQuietly(backendThreadLocal.get());
+		// the ThreadLocal does not create a new value if it was not initialized already
+		// so it is safe to use ThreadLocal.get() it won't create a new useless instance
+		closeClient(clientThreadLocal.get());
+		closeClient(backendThreadLocal.get());
 	}
 
 	@Override
@@ -93,11 +80,24 @@ public class ThreadLocalCloseableHttpClientRequestExecutor extends HttpClientReq
 	}
 
 	protected void closeClient(CloseableHttpClient c) {
-		try {
-			c.close();
-		} catch (IOException e) {
-			LOG.error("IOException while closing CloseableHttpClient");
+		if (c != null) {
+			try {
+				c.close();
+			} catch (IOException e) {
+				LOG.warn("IOException while closing CloseableHttpClient", e);
+			}
+		} else {
+			LOG.debug("CloseableHttpClient was not set for current Thread");
 		}
+	}
+
+	protected static CloseableHttpClient getOrCreateHttpClient(HttpClientBuilder builder, ThreadLocal<CloseableHttpClient> threadLocal) {
+		CloseableHttpClient result = threadLocal.get();
+		if (result == null) {
+			result = builder.build();
+			threadLocal.set(result);
+		}
+		return result;
 	}
 
 	public void setClientBuilder(HttpClientBuilder clientBuilder) {

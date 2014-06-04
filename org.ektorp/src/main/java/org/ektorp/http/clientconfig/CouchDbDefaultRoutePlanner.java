@@ -35,12 +35,13 @@ public class CouchDbDefaultRoutePlanner extends DefaultRoutePlanner {
 
 	@Override
 	public HttpRoute determineRoute(final HttpHost host, final HttpRequest request, final HttpContext context) throws HttpException {
-		String serverHostNameLocal = getServerHostName();
-		Integer serverHostPortLocal = getServerHostPort();
-		Assert.notNull(serverHostNameLocal);
-		Assert.notNull(serverHostPortLocal);
 		final HttpHost target;
 		if (host == null) {
+			String serverHostNameLocal = getServerHostName();
+			Integer serverHostPortLocal = getServerHostPort();
+			Assert.notNull(serverHostNameLocal);
+			Assert.notNull(serverHostPortLocal);
+			//
 			target = new HttpHost(serverHostNameLocal, getServerHostPort());
 		} else {
 			target = host;
