@@ -80,6 +80,9 @@ public class CredentialsProviderConfigurer {
 		if (username == null || password == null) {
 			return;
 		}
+		if (username.length() == 0) {
+			return;
+		}
 		AuthScope authScope = new AuthScope(host, port, AuthScope.ANY_REALM);
 		UsernamePasswordCredentials usernamePasswordCredentials = new UsernamePasswordCredentials(username, password);
 		LOG.info("authScope = {}, usernamePasswordCredentials = {}", new Object[]{authScope, usernamePasswordCredentials});
