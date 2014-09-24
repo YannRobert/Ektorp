@@ -1,20 +1,10 @@
 package org.ektorp.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.io.IOUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
+import org.apache.commons.io.IOUtils;
 import org.ektorp.*;
 import org.ektorp.changes.ChangesCommand;
 import org.ektorp.changes.ChangesFeed;
@@ -27,6 +17,10 @@ import org.ektorp.util.Documents;
 import org.ektorp.util.Exceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
 
 /**
  *
@@ -399,9 +393,7 @@ public class StdCouchDbConnector implements CouchDbConnector {
 
     @Override
     public void createDatabaseIfNotExists() {
-        if (!dbInstance.checkIfDbExists(new DbPath(dbName))) {
-            dbInstance.createDatabase(dbName);
-        }
+		dbInstance.createDatabaseIfNotExists(dbName);
     }
 
     @Override
@@ -494,6 +486,37 @@ public class StdCouchDbConnector implements CouchDbConnector {
     public DbInfo getDbInfo() {
         ResponseCallback<DbInfo> responseCallback = getCouchDbConnectorResponseHandlerFactory().getClassInstanceResponseHandler(DbInfo.class);
         return restTemplate.get(dbURI.toString(), responseCallback);
+    }
+
+    @Override
+    public Security getSecurity() {
+        return restTemplate.get(securityPath(),
+                new StdResponseHandler<Security>() {
+                    @Override
+                    public Security success(HttpResponse hr) throws Exception {
+                        return objectMapper.readValue(hr.getContent(),
+                                Security.class);
+                    }
+                }
+        );
+    }
+
+    @Override
+    public Status updateSecurity(Security security) {
+        try {
+            return restTemplate.put(securityPath(),
+                    objectMapper.writeValueAsString(security),
+                    new StdResponseHandler<Status>() {
+                        @Override
+                        public Status success(HttpResponse hr) throws Exception {
+                            return objectMapper.readValue(hr.getContent(),
+                                    Status.class);
+                        }
+                    }
+            );
+        } catch(JsonProcessingException e) {
+            throw new IllegalStateException("Failed to update security: " + e.getMessage());
+        }
     }
 
     @Override
@@ -807,6 +830,8 @@ public class StdCouchDbConnector implements CouchDbConnector {
 		restTemplate.put(uri.toString(), document, "application/json", length);
 	}
 
-
+    private String securityPath() {
+        return String.format("%s_security", dbURI);
+    }
 }
 
