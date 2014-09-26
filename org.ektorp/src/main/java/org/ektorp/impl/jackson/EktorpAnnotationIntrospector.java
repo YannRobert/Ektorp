@@ -28,6 +28,11 @@ public class EktorpAnnotationIntrospector extends NopAnnotationIntrospector {
 
 
 	@Override
+	public boolean isHandled(Annotation ann) {
+		return DocumentReferences.class == ann.annotationType();
+	}
+
+	@Override
 	public boolean hasIgnoreMarker(AnnotatedMember member) {
 		return super.hasIgnoreMarker(member);
 	}

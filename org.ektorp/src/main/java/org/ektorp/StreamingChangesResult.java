@@ -81,40 +81,27 @@ public class StreamingChangesResult implements Serializable, Iterable<DocumentCh
 
 
 	private class StreamingResultIterator implements Iterator<DocumentChange>{
-        private DocumentChange row;
-        Boolean hasNext = null;
-
-
-
+		private DocumentChange row;
 		public boolean hasNext() {
-            findNext();
-            return hasNext;
+			try {
+			    JsonNode jsonNode = jp.readValueAs(JsonNode.class);
+			    if (jsonNode == null) {
+			        jsonNode = jp.readValueAs(JsonNode.class);
+			        lastSeq = jsonNode.get("last_seq").longValue();
+			        close();
+			        return false;
+			    }
+			    row = new StdDocumentChange(jsonNode);
+
+				return true;
+			} catch (Exception e) {
+				throw new DbAccessException(e);
+			}
 		}
 
 		public DocumentChange next() {
-            findNext();
-            hasNext = null;
-            return row;
+			return row;
 		}
-
-		protected void findNext() {
-            if (hasNext == null) {
-                try {
-                    JsonNode jsonNode = jp.readValueAs(JsonNode.class);
-                    if (jsonNode == null) {
-                        jsonNode = jp.readValueAs(JsonNode.class);
-                        lastSeq = jsonNode.get("last_seq").longValue();
-                        close();
-                        hasNext = false;
-                    } else {
-                        row = new StdDocumentChange(jsonNode);
-                        hasNext = true;
-                    }
-                } catch (Exception e) {
-                    throw new DbAccessException(e);
-                }
-            }
-        }
 		public void remove() {
 			throw new UnsupportedOperationException();
 		}

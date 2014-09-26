@@ -1,13 +1,10 @@
 package org.ektorp;
 
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
+import java.io.*;
+import java.util.*;
 
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  *
@@ -16,18 +13,18 @@ import java.util.Map;
  * @author henrik lundgren
  *
  */
-public class ReplicationStatus extends Status implements Serializable {
+public class ReplicationStatus implements Serializable {
 
 	private static final long serialVersionUID = 6617269292660336903L;
+
+	@JsonProperty("ok")
+	boolean ok;
 
 	@JsonProperty("no_changes")
 	boolean noChanges;
 
 	@JsonProperty("session_id")
 	String sessionId;
-	
-	@JsonProperty("_local_id")
-	String id;
 
 	@JsonProperty("source_last_seq")
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value="SE_BAD_FIELD")
@@ -37,6 +34,12 @@ public class ReplicationStatus extends Status implements Serializable {
     @edu.umd.cs.findbugs.annotations.SuppressWarnings(value="SE_BAD_FIELD")
 	List<History> history;
 
+	private Map<String, Object> unknownFields;
+
+	public boolean isOk() {
+		return ok;
+	}
+
 	public boolean isNoChanges() {
 		return noChanges;
 	}
@@ -44,10 +47,6 @@ public class ReplicationStatus extends Status implements Serializable {
 	public String getSessionId() {
 		return sessionId;
 	}
-	
-	public String getId() {
-        return id;
-    }
 
 	public String getSourceLastSequence() {
 		return sourceLastSequence != null ? sourceLastSequence.asText() : null;
@@ -59,6 +58,22 @@ public class ReplicationStatus extends Status implements Serializable {
 
 	public List<History> getHistory() {
 		return history;
+	}
+
+	private Map<String, Object> unknown() {
+		if (unknownFields == null) {
+			unknownFields = new HashMap<String, Object>();
+		}
+		return unknownFields;
+	}
+
+	@JsonAnySetter
+	public void setUnknown(String key, Object value) {
+		unknown().put(key, value);
+	}
+
+	public Object getField(String key) {
+		return unknown().get(key);
 	}
 
 	public static class History {
