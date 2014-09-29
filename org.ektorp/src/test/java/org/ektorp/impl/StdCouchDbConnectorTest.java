@@ -7,9 +7,9 @@ import com.fasterxml.jackson.datatype.joda.JodaModule;
 import org.apache.commons.io.IOUtils;
 import org.ektorp.*;
 import org.ektorp.http.HttpResponse;
+import org.ektorp.http.HttpStatus;
 import org.ektorp.http.StdHttpClient;
 import org.ektorp.support.CouchDbDocument;
-import org.ektorp.util.Exceptions;
 import org.ektorp.util.JSONComparator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -17,7 +17,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.internal.stubbing.answers.ThrowsException;
-import org.mockito.internal.verification.VerificationModeFactory;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -25,6 +24,7 @@ import java.util.*;
 
 import static java.lang.String.format;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
@@ -235,22 +235,16 @@ public class StdCouchDbConnectorTest {
 
     @Test
     public void should_create_db_if_missing() {
-        doReturn(HttpResponseStub.valueOf(404, "{\"error\":\"not_found\",\"reason\":\"no_db_file\"}")).when(httpClient).head("/test_db/");
-        doReturn(null).when(httpClient).put("/test_db/");
-        dbCon.createDatabaseIfNotExists();
-        verify(httpClient).put("/test_db/");
+		doReturn(HttpResponseStub.valueOf(HttpStatus.CREATED, null)).when(httpClient).put("/test_db/");
+		dbCon.createDatabaseIfNotExists();
+		verify(httpClient).put("/test_db/");
     }
 
     @Test
     public void should_not_create_db_if_already_exists() {
-        doReturn(HttpResponseStub
-                .valueOf(
-                        200,
-                        "{\"test_db\":\"global\",\"doc_count\":1,\"doc_del_count\":0,\"update_seq\":3,\"purge_seq\":0,\"compact_running\":false,\"disk_size\":100,\"instance_start_time\":\"130\",\"disk_format_version\":5,\"committed_update_seq\":3}"))
-                .when(httpClient).head("/test_db/");
-
-        dbCon.createDatabaseIfNotExists();
-        verify(httpClient, VerificationModeFactory.times(0)).put(anyString());
+		doReturn(HttpResponseStub.valueOf(HttpStatus.PRECONDITION_FAILED, null)).when(httpClient).put("/test_db/");
+		dbCon.createDatabaseIfNotExists();
+		verify(httpClient).put("/test_db/");
     }
 
     @Test
@@ -785,6 +779,29 @@ public class StdCouchDbConnectorTest {
         String expectedPath = "/test_db/" + src;
         String expectedTarget = target + "?rev=" + rev;
         verify(httpClient).copy(expectedPath, expectedTarget);
+    }
+
+    @Test
+    public void testSecurityConfigurationValue() {
+        doReturn(HttpResponseStub.valueOf(200, "{\"admins\":{\"names\":[\"admin\"],\"roles\":[\"admin\"]},\"members\":{\"names\":[\"user\"],\"roles\":[\"users\"]}}")).when(httpClient).get(anyString());
+        Security sec = dbCon.getSecurity();
+        assertNotNull(sec);
+        assertNotNull(sec.getAdmins());
+        assertNotNull(sec.getMembers());
+
+        assertEquals(sec.getAdmins().getNames().get(0), "admin");
+        assertEquals(sec.getAdmins().getRoles().get(0), "admin");
+        assertEquals(sec.getMembers().getNames().get(0), "user");
+        assertEquals(sec.getMembers().getRoles().get(0), "users");
+    }
+
+    @Test
+    public void testUpdateSecurityConfigurationValue() {
+        doReturn(HttpResponseStub.valueOf(200, "{\"ok\":true}")).when(httpClient).put(anyString(), anyString());
+        Security security = new Security();
+        Status status = dbCon.updateSecurity(security);
+
+        assertTrue(status.isOk());
     }
 
     @SuppressWarnings("serial")
