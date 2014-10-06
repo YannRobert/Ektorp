@@ -747,7 +747,7 @@ public class ViewQuery {
 		copy.listName = listName;
 		copy.queryParams.putAll(queryParams);
 		copy.reduce = reduce;
-		copy.skip = copy.skip;
+		copy.skip = skip;
 		copy.staleOk = staleOk;
 		copy.startDocId = startDocId;
 		startKey.copyTo(copy.startKey);
