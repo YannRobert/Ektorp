@@ -30,10 +30,16 @@ public class PageRequest {
 
 	public static ViewQuery applyPagingParameters(ViewQuery q, PageRequest pr) {
 		ViewQuery pagedQuery = q.clone();
-		pagedQuery.startKey(pr.getStartKey());
-		pagedQuery.startDocId(pr.getStartKeyDocId());
-		if (pr.back) {
-			pagedQuery.descending(!pagedQuery.isDescending());
+		if (pr.page > 0) {
+			if (pr.getStartKey() != null) {
+				pagedQuery.startKey(pr.getStartKey());
+			}
+			if (pr.getStartKeyDocId() != null) {
+				pagedQuery.startDocId(pr.getStartKeyDocId());
+			}
+			if (pr.back) {
+				pagedQuery.descending(!pagedQuery.isDescending());
+			}
 		}
 		int additionalRowsToQuery = 1;
 		pagedQuery.limit(pr.getPageSize() + additionalRowsToQuery);
