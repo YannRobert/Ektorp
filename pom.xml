@@ -4,7 +4,7 @@
     <artifactId>org.ektorp.parent</artifactId>
     <packaging>pom</packaging>
     <name>Ektorp Parent</name>
-    <version>1.4.3-SNAPSHOT</version>
+    <version>1.4.3</version>
     <description>a Java CouchDB persistence library</description>
     <scm>
         <connection>scm:git:git@github.com:helun/Ektorp.git</connection>
@@ -151,7 +151,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>findbugs-maven-plugin</artifactId>
-                    <version>2.5.3</version>
+                    <version>3.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -212,6 +212,14 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <!-- http://blog.joda.org/2014/02/turning-off-doclint-in-jdk-8-javadoc.html -->
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.1</version>
+                <configuration>
+                    <additionalparam>-Xdoclint:none</additionalparam>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
