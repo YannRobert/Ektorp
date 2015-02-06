@@ -19,8 +19,8 @@
         <constructor-arg index="0" ref="httpClientRequestExecutor"/>
     </bean>
 
-    <bean id="httpClientRequestExecutor" class="org.ektorp.http.clientconfig.CloseableHttpClientRequestExecutor">
-        <!--<property name="backendBuilder" ref="couchDbHttpClientBuilder"/>-->
+    <bean id="httpClientRequestExecutor" class="org.ektorp.http.clientconfig.AuthenticatedCloseableHttpClientRequestExecutor">
+        <property name="backendBuilder" ref="couchDbHttpClientBuilder"/>
         <property name="clientBuilder" ref="couchDbHttpClientBuilder"/>
         <property name="serverHostName" value="$couchdbProperties{host}"/>
         <property name="serverHostPort" value="$couchdbProperties{port}"/>
@@ -39,11 +39,9 @@
     </bean>
 
     <bean id="couchDbHttpClientBuilder" class="org.apache.http.impl.client.HttpClientBuilder" depends-on="credentialsProviderConfigurer, customRequestConfigBuilder">
-        <!--
         <property name="keepAliveStrategy">
             <bean class="org.ektorp.http.clientconfig.ConfigurableConnectionKeepAliveStrategy"/>
         </property>
-        -->
         <property name="retryHandler">
             <bean class="org.ektorp.http.clientconfig.ConfigurableHttpRequestRetryHandler">
                 <property name="includeExceptionInLogs" value="true"/>
@@ -74,6 +72,7 @@
         <property name="staleConnectionCheckEnabled" value="$couchdbExtensionProperties{staleConnectionCheckEnabled}"/>
         <property name="socketTimeout" value="$couchdbProperties{socketTimeout}"/>
         <property name="connectTimeout" value="$couchdbProperties{connectionTimeout}"/>
+        <property name="expectContinueEnabled" value="false"/>
     </bean>
 
 </beans>
