@@ -42,21 +42,20 @@ public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHand
 
 	@Override
 	public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
-		boolean result = computeRetryRequest(exception, executionCount, context);
-		LOG.debug("result = {}", result);
-		return result;
-	}
-
-	private boolean computeRetryRequest(IOException exception, int executionCount, HttpContext context) {
 		final HttpRequest request = (HttpRequest) context.getAttribute(ExecutionContext.HTTP_REQUEST);
+		boolean result = computeRetryRequest(exception, executionCount, context, request);
 
 		final String method = request.getRequestLine().getMethod();
 		if (includeExceptionInLogs) {
-			LOG.info("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage(), exception});
+			LOG.info("Decide whether to retry {} request attempt #{} = {} for exception {} : {}", new Object[]{method, executionCount, result, exception.getClass().getName(), exception.getMessage(), exception});
 		} else {
-			LOG.info("Decide whether to retry {} request attempt #{} for exception {} : {}", new Object[]{method, executionCount, exception.getClass().getName(), exception.getMessage()});
+			LOG.info("Decide whether to retry {} request attempt #{} = {} for exception {} : {}", new Object[]{method, executionCount, result, exception.getClass().getName(), exception.getMessage()});
 		}
 
+		return result;
+	}
+
+	private boolean computeRetryRequest(IOException exception, int executionCount, HttpContext context, HttpRequest request) {
 		if (executionCount >= maxRetryCount) {
 			// Do not retry if over max retry count
 			return false;
