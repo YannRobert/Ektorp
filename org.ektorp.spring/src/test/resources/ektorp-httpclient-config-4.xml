@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:/ektorpconfig/couchdb-ektorp.properties"/>
+        <property name="placeholderPrefix" value="$couchdbProperties{"/>
+        <property name="ignoreUnresolvablePlaceholders" value="true"/>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:/ektorpconfig/couchdb-ektorp-extension.properties"/>
+        <property name="placeholderPrefix" value="$couchdbExtensionProperties{"/>
+        <property name="ignoreUnresolvablePlaceholders" value="true"/>
+    </bean>
+
+    <bean id="ektorpHttpClient" class="org.ektorp.http.StdHttpClient">
+        <constructor-arg index="0" ref="httpClientRequestExecutor"/>
+    </bean>
+
+    <bean id="httpClientRequestExecutor" class="org.ektorp.http.clientconfig.CloseableHttpClientRequestExecutor">
+        <!--<property name="backendBuilder" ref="couchDbHttpClientBuilder"/>-->
+        <property name="clientBuilder" ref="couchDbHttpClientBuilder"/>
+        <property name="serverHostName" value="$couchdbProperties{host}"/>
+        <property name="serverHostPort" value="$couchdbProperties{port}"/>
+    </bean>
+
+
+    <bean id="couchDbCredentialsProvider" class="org.ektorp.http.clientconfig.CredentialsProviderConfigurer.DefaultCredentialsProvider">
+    </bean>
+
+    <bean id="credentialsProviderConfigurer" class="org.ektorp.http.clientconfig.CredentialsProviderConfigurer">
+        <property name="host" value="$couchdbProperties{host}"/>
+        <property name="port" value="$couchdbProperties{port}"/>
+        <property name="username" value="$couchdbProperties{username}"/>
+        <property name="password" value="$couchdbProperties{password}"/>
+        <property name="credentialsProvider" ref="couchDbCredentialsProvider"/>
+    </bean>
+
+    <bean id="couchDbHttpClientBuilder" class="org.apache.http.impl.client.HttpClientBuilder" depends-on="credentialsProviderConfigurer, customRequestConfigBuilder">
+        <!--
+        <property name="keepAliveStrategy">
+            <bean class="org.ektorp.http.clientconfig.ConfigurableConnectionKeepAliveStrategy"/>
+        </property>
+        -->
+        <property name="retryHandler">
+            <bean class="org.ektorp.http.clientconfig.ConfigurableHttpRequestRetryHandler">
+                <property name="includeExceptionInLogs" value="true"/>
+            </bean>
+        </property>
+        <property name="connectionReuseStrategy">
+            <bean class="org.ektorp.http.clientconfig.CustomConnectionReuseStrategy"/>
+        </property>
+        <property name="routePlanner">
+            <bean class="org.ektorp.http.clientconfig.CouchDbDefaultRoutePlanner">
+                <property name="serverHostName" value="$couchdbProperties{host}"/>
+                <property name="serverHostPort" value="$couchdbProperties{port}"/>
+            </bean>
+        </property>
+        <property name="defaultRequestConfig">
+            <bean factory-bean="customRequestConfigBuilder" factory-method="build"/>
+        </property>
+        <property name="defaultCredentialsProvider" ref="couchDbCredentialsProvider"/>
+        <property name="connectionManager">
+            <bean class="org.apache.http.impl.conn.PoolingHttpClientConnectionManager">
+                <property name="defaultMaxPerRoute" value="$couchdbProperties{maxConnections}"/>
+                <property name="maxTotal" value="$couchdbProperties{maxConnections}"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="customRequestConfigBuilder" class="org.apache.http.client.config.RequestConfig" factory-method="custom">
+        <property name="staleConnectionCheckEnabled" value="$couchdbExtensionProperties{staleConnectionCheckEnabled}"/>
+        <property name="socketTimeout" value="$couchdbProperties{socketTimeout}"/>
+        <property name="connectTimeout" value="$couchdbProperties{connectionTimeout}"/>
+    </bean>
+
+</beans>
