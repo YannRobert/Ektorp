@@ -1,9 +1,9 @@
 package org.ektorp.http.clientconfig;
 
-import org.apache.commons.httpclient.NoHttpResponseException;
 import org.apache.http.ConnectionClosedException;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpRequest;
+import org.apache.http.NoHttpResponseException;
 import org.apache.http.client.HttpRequestRetryHandler;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
