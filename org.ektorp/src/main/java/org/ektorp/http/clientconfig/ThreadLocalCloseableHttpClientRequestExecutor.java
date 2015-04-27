@@ -19,6 +19,8 @@ public class ThreadLocalCloseableHttpClientRequestExecutor extends HttpClientReq
 
 	private Integer serverHostPort;
 
+	private boolean usingTLS;
+
 	protected HttpClientBuilder clientBuilder;
 
 	protected HttpClientBuilder backendBuilder;
@@ -76,7 +78,7 @@ public class ThreadLocalCloseableHttpClientRequestExecutor extends HttpClientReq
 
 	@Override
 	public HttpHost getHttpHost(HttpClient client) {
-		return new HttpHost(serverHostName, serverHostPort);
+		return new HttpHost(serverHostName, serverHostPort, usingTLS ? "https" : "http");
 	}
 
 	protected void closeClient(CloseableHttpClient c) {
@@ -114,5 +116,9 @@ public class ThreadLocalCloseableHttpClientRequestExecutor extends HttpClientReq
 
 	public void setServerHostPort(Integer serverHostPort) {
 		this.serverHostPort = serverHostPort;
+	}
+
+	public void setUsingTLS(boolean usingTLS) {
+		this.usingTLS = usingTLS;
 	}
 }

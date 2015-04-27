@@ -25,6 +25,8 @@ public class CouchDbDefaultRoutePlanner extends DefaultRoutePlanner {
 
 	private String password;
 
+	private boolean usingTLS = false;
+
 	public CouchDbDefaultRoutePlanner() {
 		this(DefaultSchemePortResolver.INSTANCE);
 	}
@@ -42,7 +44,7 @@ public class CouchDbDefaultRoutePlanner extends DefaultRoutePlanner {
 			Assert.notNull(serverHostNameLocal);
 			Assert.notNull(serverHostPortLocal);
 			//
-			target = new HttpHost(serverHostNameLocal, getServerHostPort());
+			target = new HttpHost(serverHostNameLocal, serverHostPortLocal, usingTLS ? "https" : "http");
 		} else {
 			target = host;
 		}
@@ -74,6 +76,10 @@ public class CouchDbDefaultRoutePlanner extends DefaultRoutePlanner {
 		return password;
 	}
 
+	public boolean isUsingTLS() {
+		return usingTLS;
+	}
+
 	public void setServerHostName(String serverHostName) {
 		this.serverHostName = serverHostName;
 	}
@@ -88,5 +94,9 @@ public class CouchDbDefaultRoutePlanner extends DefaultRoutePlanner {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	public void setUsingTLS(boolean usingTLS) {
+		this.usingTLS = usingTLS;
 	}
 }
