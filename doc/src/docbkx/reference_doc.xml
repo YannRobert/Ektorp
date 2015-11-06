@@ -1324,7 +1324,7 @@ public boolean contains(String docId);</programlisting>
 
         <programlisting language="javascript">[{"_id":"_design/Sofa",
     "views":{
-        "all": {"map": "function(doc) { if (doc.type = 'Sofa' ) emit( null, doc._id ) } "}
+        "all": {"map": "function(doc) { if (doc.type == 'Sofa' ) emit( null, doc._id ) } "}
      }
 }]</programlisting>
       </section>
@@ -2099,7 +2099,7 @@ password=geheimnis</programlisting>
       by the DataLoaders themselves.</para>
 
       <section>
-        <title>Declaing the InitialDataLoader in the Application
+        <title>Declaring the InitialDataLoader in the Application
         Context</title>
 
         <para>The InitialDataLoader work best if its dependencies are
