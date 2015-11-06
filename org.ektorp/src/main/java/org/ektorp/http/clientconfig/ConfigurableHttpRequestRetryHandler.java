@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.IOException;
 
 public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHandler {
@@ -68,6 +69,10 @@ public class ConfigurableHttpRequestRetryHandler implements HttpRequestRetryHand
 		} else if (exception instanceof ConnectionClosedException) {
 			// Caused by: org.apache.http.ConnectionClosedException: Premature end of Content-Length delimited message body (expected: 88; received: 0 
 			return true;
+		} else if (exception instanceof SSLPeerUnverifiedException) {
+			// javax.net.ssl.SSLPeerUnverifiedException: Host name does not match the certificate subject provided by the peer
+			// this is a permanent Exception, a retry will not have more chance to succeed, so we do not retry
+			return false;
 		}
 
 		boolean idempotent = !(request instanceof HttpEntityEnclosingRequest);
