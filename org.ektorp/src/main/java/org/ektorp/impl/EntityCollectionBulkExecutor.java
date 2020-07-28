@@ -2,6 +2,7 @@ package org.ektorp.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
+import org.apache.http.client.entity.GzipCompressingEntity;
 import org.ektorp.DocumentOperationResult;
 import org.ektorp.http.JacksonableEntity;
 import org.ektorp.http.RestTemplate;
@@ -20,6 +21,8 @@ public class EntityCollectionBulkExecutor implements BulkExecutor<Collection<?>>
     protected RestTemplate restTemplate;
 
     protected ObjectMapper objectMapper;
+    
+    protected boolean requestCompressionEnabled = true;
 
     public EntityCollectionBulkExecutor() {
 
@@ -41,7 +44,15 @@ public class EntityCollectionBulkExecutor implements BulkExecutor<Collection<?>>
     }
 
     protected HttpEntity createHttpEntity(Object o) {
-        return new JacksonableEntity(o, objectMapper);
+        JacksonableEntity jacksonableEntity = new JacksonableEntity(o, objectMapper);
+        if (requestCompressionEnabled) {
+            return new GzipCompressingEntity(jacksonableEntity);
+        }
+        return jacksonableEntity;
+    }
+    
+    public void setRequestCompressionEnabled(boolean requestCompressionEnabled) {
+        this.requestCompressionEnabled = requestCompressionEnabled;
     }
 
 }

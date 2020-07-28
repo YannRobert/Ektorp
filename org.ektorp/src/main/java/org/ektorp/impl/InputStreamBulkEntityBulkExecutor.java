@@ -1,6 +1,8 @@
 package org.ektorp.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.entity.GzipCompressingEntity;
 import org.ektorp.DocumentOperationResult;
 import org.ektorp.http.InputStreamBulkEntity;
 import org.ektorp.http.RestTemplate;
@@ -11,25 +13,34 @@ import java.util.List;
 
 public class InputStreamBulkEntityBulkExecutor implements BulkExecutor<InputStream> {
 
-    protected RestTemplate restTemplate;
+	protected RestTemplate restTemplate;
 
-    protected ObjectMapper objectMapper;
+	protected ObjectMapper objectMapper;
 
-    protected String bulkDocsUri;
+	protected String bulkDocsUri;
 
-    public InputStreamBulkEntityBulkExecutor(URI dbURI, RestTemplate restTemplate, ObjectMapper objectMapper) {
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
-        this.bulkDocsUri = dbURI.append("_bulk_docs").toString();
-    }
+	protected boolean requestCompressionEnabled = true;
 
-    @Override
-    public List<DocumentOperationResult> executeBulk(InputStream inputStream, boolean allOrNothing) {
-        return restTemplate.post(
-                bulkDocsUri,
-                new InputStreamBulkEntity(inputStream, allOrNothing),
-                new BulkOperationResponseHandler(objectMapper));
-    }
+	public InputStreamBulkEntityBulkExecutor(URI dbURI, RestTemplate restTemplate, ObjectMapper objectMapper) {
+		this.restTemplate = restTemplate;
+		this.objectMapper = objectMapper;
+		this.bulkDocsUri = dbURI.append("_bulk_docs").toString();
+	}
 
+	@Override
+	public List<DocumentOperationResult> executeBulk(InputStream inputStream, boolean allOrNothing) {
+        HttpEntity httpEntity = new InputStreamBulkEntity(inputStream, allOrNothing);
+		if (requestCompressionEnabled) {
+			httpEntity = new GzipCompressingEntity(httpEntity);
+		}
+		return restTemplate.post(
+				bulkDocsUri,
+				httpEntity,
+				new BulkOperationResponseHandler(objectMapper));
+	}
+
+	public void setRequestCompressionEnabled(boolean requestCompressionEnabled) {
+		this.requestCompressionEnabled = requestCompressionEnabled;
+	}
 
 }
